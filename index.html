@@ -47,12 +47,17 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--a)}
 .stat strong{font-size:20px;font-variant-numeric:tabular-nums}
 .gap{background:var(--track);border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:16px}
 .gap b{font-size:18px;color:var(--b);font-variant-numeric:tabular-nums}
-.chartbox{width:100%;aspect-ratio:16/9;min-height:220px}
+.chartbox{position:relative;width:100%;aspect-ratio:16/9;min-height:220px}
 canvas{width:100%;height:100%;display:block}
+.tip{position:absolute;top:6px;z-index:2;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.65;box-shadow:0 2px 8px rgba(0,0,0,.15);min-width:170px}
+.tip b{font-size:13px}
+.tip .r{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+canvas{touch-action:pan-y;cursor:crosshair}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--sub);margin-top:8px}
 .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .note{font-size:12px;color:var(--sub);margin-top:18px}
-
+ 
 .wrap{max-width:1120px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
 .side{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
@@ -81,21 +86,40 @@ canvas{width:100%;height:100%;display:block}
 .ltbtn:hover{background:var(--track)}
 .ltbtn:focus-visible{outline:2px solid var(--a);outline-offset:2px}
 .picked{font-size:12px;color:var(--a);margin-top:6px}
+ 
+.apptabs{margin-bottom:16px;max-width:520px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font:inherit;font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip:hover{background:var(--track)}
+.chip:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.chip.on{border-color:var(--a);color:var(--a);font-weight:700}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px}
+.chk input{width:18px;height:18px;accent-color:var(--a)}
+.ptable{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.ptable th,.ptable td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+.ptable th:first-child,.ptable td:first-child{text-align:left}
+.ptable th{font-weight:500;color:var(--sub);font-size:12px}
+.half{background:var(--track);border-radius:8px;padding:10px 12px;font-size:13px;margin:0 0 12px}
+.half b{color:var(--b);font-size:16px}
 @media (max-width:900px){.layout{grid-template-columns:1fr}.side{position:static}.list{max-height:480px}}
 @media (max-width:480px){.result{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>運用SIM</h1>
-  <p class="lead">年間の信託報酬（手数料）が、長期の運用成果をどれだけ減らすかを比較します。右の一覧から銘柄を選ぶと、その信託報酬率を反映できます。</p>
-
-  <div class="layout"><div class="main">
+  <h1 id="ttl">運用SIM</h1>
+  <p class="lead" id="lead">年間の信託報酬（手数料）が、長期の運用成果をどれだけ減らすかを比較します。右の一覧から銘柄を選ぶと、その信託報酬率を反映できます。</p>
+ 
+  <div class="tabs apptabs" role="tablist">
+    <button role="tab" id="app-i" aria-selected="true">運用SIM</button>
+    <button role="tab" id="app-s" aria-selected="false">実質貯金SIM</button>
+  </div>
+  <section id="view-invest"><div class="layout"><div class="main">
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-m" aria-selected="true">毎月積み立てる</button>
     <button role="tab" id="tab-o" aria-selected="false">一括で買い付ける</button>
   </div>
-
+ 
   <div class="panel">
     <div class="field">
       <div class="row"><label for="amtN" id="amtLabel">積立額（月）</label><span class="val"><input type="number" id="amtN" inputmode="decimal" min="0" step="any"><span id="amtU">万円 / 月</span></span></div>
@@ -107,14 +131,14 @@ canvas{width:100%;height:100%;display:block}
       <div class="picked" id="picked" hidden></div>
     </div>
     <div class="field">
-      <div class="row"><label for="retN">運用利回り（年・手数料控除前）</label><span class="val"><input type="number" id="retN" inputmode="decimal" min="0" max="30" step="any"><span>％</span></span></div>
-      <input type="range" id="ret" min="0" max="12" step="0.1" aria-label="スライダー">
+      <div class="row"><label for="retN">運用利回り（年・手数料控除前）</label><span class="val"><input type="number" id="retN" inputmode="decimal" min="0" max="100" step="any"><span>％</span></span></div>
+      <input type="range" id="ret" min="0" max="100" step="0.1" aria-label="スライダー">
     </div>
     <div class="field">
       <div class="row"><label for="yrsN">運用年数</label><span class="val"><input type="number" id="yrsN" inputmode="numeric" min="1" max="100" step="1"><span>年</span></span></div>
       <input type="range" id="yrs" min="1" max="50" step="1" aria-label="スライダー">
     </div>
-
+ 
     <div class="result">
       <div class="stat"><small>投資元本</small><strong id="rP"></strong></div>
       <div class="stat a"><small>手数料なしの場合</small><strong id="rN"></strong></div>
@@ -122,8 +146,8 @@ canvas{width:100%;height:100%;display:block}
       <div class="stat"><small>手数料による目減り</small><strong id="rD"></strong></div>
     </div>
     <div class="gap" id="gap"></div>
-
-    <div class="chartbox"><canvas id="cv" role="img" aria-label="資産推移のグラフ"></canvas></div>
+ 
+    <div class="chartbox"><canvas id="cv" role="img" aria-label="資産推移のグラフ"></canvas><div class="tip" id="tip" hidden></div></div>
     <div class="legend">
       <span><i style="background:var(--a)"></i>手数料なし</span>
       <span><i style="background:var(--b)"></i>手数料あり</span>
@@ -144,38 +168,100 @@ canvas{width:100%;height:100%;display:block}
       <p class="note" id="sidenote"></p>
     </div>
   </aside>
+  </div></section>
+ 
+  <section id="view-save" hidden><div class="layout"><div class="main">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="sv-m" aria-selected="true">毎月貯金する</button>
+      <button role="tab" id="sv-o" aria-selected="false">一括で預ける</button>
+    </div>
+    <div class="panel">
+      <div class="field">
+        <div class="row"><label for="sAmtN" id="sAmtLabel">毎月の貯金額</label><span class="val"><input type="number" id="sAmtN" inputmode="decimal" min="0" step="any"><span id="sAmtU">万円 / 月</span></span></div>
+        <input type="range" id="sAmt" aria-label="スライダー">
+      </div>
+      <div class="field">
+        <div class="row"><label for="sRateN">預金金利（年）</label><span class="val"><input type="number" id="sRateN" inputmode="decimal" min="0" max="10" step="any"><span>％</span></span></div>
+        <input type="range" id="sRate" min="0" max="3" step="0.05" aria-label="スライダー">
+        <div class="chips" id="rateChips"></div>
+      </div>
+      <div class="field">
+        <div class="row"><label for="sInfN">物価上昇率（年）</label><span class="val"><input type="number" id="sInfN" inputmode="decimal" min="0" max="20" step="any"><span>％</span></span></div>
+        <input type="range" id="sInf" min="0" max="10" step="0.1" aria-label="スライダー">
+        <div class="chips" id="infChips"></div>
+      </div>
+      <div class="field">
+        <div class="row"><label for="sYrsN">貯金する年数</label><span class="val"><input type="number" id="sYrsN" inputmode="numeric" min="1" max="100" step="1"><span>年</span></span></div>
+        <input type="range" id="sYrs" min="1" max="50" step="1" aria-label="スライダー">
+      </div>
+      <label class="chk"><input type="checkbox" id="sTax" checked>利息にかかる税金（20.315％）を引く</label>
+ 
+      <div class="result">
+        <div class="stat"><small>貯金した元本</small><strong id="sP"></strong></div>
+        <div class="stat a"><small>預金残高（額面）</small><strong id="sN"></strong></div>
+        <div class="stat b"><small>実質価値（今の物価で換算）</small><strong id="sR"></strong></div>
+        <div class="stat"><small>物価上昇による目減り</small><strong id="sD"></strong></div>
+      </div>
+      <div class="gap" id="sGap"></div>
+ 
+      <div class="chartbox"><canvas id="scv" role="img" aria-label="貯金の額面と実質価値の推移"></canvas><div class="tip" id="stip" hidden></div></div>
+      <div class="legend">
+        <span><i style="background:var(--a)"></i>預金残高（額面）</span>
+        <span><i style="background:var(--b)"></i>実質価値（今の物価で換算）</span>
+        <span><i style="background:var(--c)"></i>貯金した元本</span>
+      </div>
+    </div>
+    <p class="note">※ 実質価値は「将来の残高 ÷ (1 + 物価上昇率)^年数」で計算した、いまの物価で買える額の目安です。預金金利と物価上昇率は毎年一定、利息は毎月複利で増えると仮定しています。積立は毎月末に行う想定です。あくまでシミュレーションであり、将来の金利・物価を示唆・保証するものではありません。</p>
   </div>
+  <aside class="side">
+    <div class="panel">
+      <p class="sidehead">物価が上がると、お金の価値はこう変わります</p>
+      <p class="half" id="half"></p>
+      <table class="ptable">
+        <thead><tr><th>年後</th><th>今の100万円の価値</th><th>今の100円の物は</th></tr></thead>
+        <tbody id="ptb"></tbody>
+      </table>
+      <p class="note">物価上昇率は左の入力値で計算しています。目安の数字は、入力欄の下のボタンから選べます。<br>
+      ・日銀の「物価安定の目標」は消費者物価の前年比2％（政府・日銀の共同声明）。<br>
+      ・2026年5月のコアCPI（生鮮食品を除く）は前年比+1.4％（総務省統計。smart-moneylife の記事より）。<br>
+      ・日銀の4月の展望リポート（2026年4月28日・日本経済新聞）では、2026年度のコアCPI見通しは+2.8％。<br>
+      ・メガバンク3行の普通預金金利は2026年8月3日から年0.4％（賢者のお金ナビ等）。ネット銀行には年1.0％台の普通預金や定期預金もあります。<br>
+      ・普通預金などの利息には、所得税・住民税として20.315％が課税されます。</p>
+    </div>
+  </aside>
+  </div></section>
 </div>
-
+ 
 <script>
 (function(){
   var mode = 'm';
   var $ = function(id){return document.getElementById(id)};
   var sl = {amt:$('amt'), fee:$('fee'), ret:$('ret'), yrs:$('yrs')};
   var nb = {amt:$('amtN'), fee:$('feeN'), ret:$('retN'), yrs:$('yrsN')};
-  var LIM = {amt:[0,100000], fee:[0,10], ret:[0,30], yrs:[1,100]};
+  var LIM = {amt:[0,100000], fee:[0,10], ret:[0,100], yrs:[1,100]};
   var cfg = {
     m:{label:'積立額（月）', unit:'万円 / 月', smin:1, smax:30, sstep:1, val:5, ret:7.2},
     o:{label:'投資元本', unit:'万円', smin:10, smax:3000, sstep:10, val:100, ret:7}
   };
   var state = {amt:5, fee:2, ret:7.2, yrs:30};
-
+ 
   function fmt(yen){
     var man = Math.round(yen/10000);
     if (man >= 10000){
       var oku = Math.floor(man/10000), rest = man % 10000;
-      return oku + '億' + (rest? rest.toLocaleString('ja-JP')+'万円':'円');
+      if (oku >= 10000){ var cho = Math.floor(oku/10000), ro = oku % 10000; return cho.toLocaleString('ja-JP') + '兆' + (ro? ro.toLocaleString('ja-JP')+'億円':'円'); }
+      return oku.toLocaleString('ja-JP') + '億' + (rest? rest.toLocaleString('ja-JP')+'万円':'円');
     }
     return man.toLocaleString('ja-JP') + '万円';
   }
-
+ 
   function syncSliders(){
     Object.keys(sl).forEach(function(k){ sl[k].value = state[k]; });
   }
   function syncBoxes(except){
     Object.keys(nb).forEach(function(k){ if (k!==except) nb[k].value = state[k]; });
   }
-
+ 
   function setMode(m){
     mode = m;
     var c = cfg[m];
@@ -187,7 +273,7 @@ canvas{width:100%;height:100%;display:block}
     $('tab-o').setAttribute('aria-selected', m==='o');
     syncSliders(); syncBoxes(); update();
   }
-
+ 
   // 年ごとの資産推移
   function series(netAnnual, years){
     var out=[], mr = Math.pow(1+netAnnual, 1/12)-1, bal=0;
@@ -200,7 +286,7 @@ canvas{width:100%;height:100%;display:block}
     }
     return out;
   }
-
+ 
   function update(){
     var a = state.amt, f=state.fee/100, r=state.ret/100, y=Math.round(state.yrs);
     var noFee = series(r, y), withFee = series(Math.max(r-f,-0.99), y);
@@ -213,9 +299,9 @@ canvas{width:100%;height:100%;display:block}
     $('rD').textContent = '−' + fmt(N-F);
     var pct = N>0 ? ((N-F)/N*100) : 0;
     $('gap').innerHTML = y + '年後、手数料だけで資産が <b>' + fmt(N-F) + '</b>（' + pct.toFixed(1) + '％）少なくなります。';
-    draw(noFee, withFee, principal, y);
+    chart = {n:noFee, w:withFee, p:principal, y:y}; hideTip(); draw(noFee, withFee, principal, y);
   }
-
+ 
   // スライダー操作 → 数値欄に反映
   Object.keys(sl).forEach(function(k){
     sl[k].addEventListener('input', function(){
@@ -242,7 +328,7 @@ canvas{width:100%;height:100%;display:block}
     });
     nb[k].addEventListener('keydown', function(e){ if (e.key==='Enter') nb[k].blur(); });
   });
-
+ 
   
   // ---- 銘柄データ（2026年9月時点・手入力のスナップショット） ----
   var IDX = [
@@ -280,9 +366,9 @@ canvas{width:100%;height:100%;display:block}
             1:[12.6,'S&P500'],2:[12.6,'S&P500'],8:[12.6,'S&P500'],13:[12.6,'S&P500'],
             14:[16.4,'NASDAQ100・ドル']};
   var side = 'i', pickedIdx = -1;
-
+ 
   function feeText(v){ return (Math.round(v*10000)/10000) + '％'; }
-
+ 
   function renderSide(){
     var data = side==='i' ? IDX : ACT, box = $('list');
     var avg = data.reduce(function(a,r){return a+r[1]},0)/data.length;
@@ -325,7 +411,7 @@ canvas{width:100%;height:100%;display:block}
     });
   }
   var pickedSide = 'i';
-
+ 
   function pick(i){
     var r = (side==='i' ? IDX : ACT)[i];
     pickedIdx = i; pickedSide = side;
@@ -346,10 +432,41 @@ canvas{width:100%;height:100%;display:block}
   nb.fee.addEventListener('input', clearPicked);
   $('st-i').addEventListener('click', function(){ side='i'; renderSide(); });
   $('st-a').addEventListener('click', function(){ side='a'; renderSide(); });
-
+ 
+ 
+  // ---- グラフ上のホバー表示 ----
+  var chart = null;
+  function hideTip(){ $('tip').hidden = true; }
+  function showTip(i){
+    if (!chart) return;
+    var tip = $('tip'), cv = $('cv');
+    draw(chart.n, chart.w, chart.p, chart.y, i);
+    var N = chart.n[i], F = chart.w[i], P = chart.p[i];
+    tip.innerHTML = '<b>' + i + '年目' + (i===0 ? '（開始時）' : '') + '</b>'
+      + '<div class="r"><span><i style="background:var(--c)"></i>投資元本</span><span>' + fmt(P) + '</span></div>'
+      + '<div class="r"><span><i style="background:var(--a)"></i>手数料控除前</span><span>' + fmt(N) + '</span></div>'
+      + '<div class="r"><span><i style="background:var(--b)"></i>手数料控除後</span><span>' + fmt(F) + '</span></div>'
+      + '<div class="r"><span>手数料の差</span><span>−' + fmt(N-F) + '</span></div>';
+    tip.hidden = false;
+    var W = cv.clientWidth, padL = 52, padR = 12;
+    var x = padL + (W-padL-padR) * i / Math.max(chart.y,1);
+    var tw = tip.offsetWidth;
+    tip.style.left = (x + 12 + tw > W ? Math.max(0, x - 12 - tw) : x + 12) + 'px';
+  }
+  function idxFromEvent(e){
+    var cv = $('cv'), r = cv.getBoundingClientRect(), W = cv.clientWidth, padL = 52, padR = 12;
+    var x = e.clientX - r.left;
+    var i = Math.round((x - padL) / (W - padL - padR) * chart.y);
+    return Math.min(chart.y, Math.max(0, i));
+  }
+  var cvEl = $('cv');
+  cvEl.addEventListener('pointermove', function(e){ if (chart) showTip(idxFromEvent(e)); });
+  cvEl.addEventListener('pointerdown', function(e){ if (chart) showTip(idxFromEvent(e)); });
+  cvEl.addEventListener('pointerleave', function(){ if (chart){ hideTip(); draw(chart.n, chart.w, chart.p, chart.y); } });
+ 
 function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
-
-  function draw(n, w, p, years){
+ 
+  function draw(n, w, p, years, hover){
     var cv=$('cv'), dpr=window.devicePixelRatio||1;
     var W=cv.clientWidth, H=cv.clientHeight;
     cv.width=W*dpr; cv.height=H*dpr;
@@ -379,14 +496,230 @@ function css(n){return getComputedStyle(document.documentElement).getPropertyVal
     line(p, css('--c'), 2);
     line(n, css('--a'), 2.5);
     line(w, css('--b'), 2.5);
+    if (hover != null && hover >= 0 && hover <= years){
+      g.strokeStyle = css('--sub'); g.lineWidth = 1; g.setLineDash([4,3]);
+      g.beginPath(); g.moveTo(X(hover), padT); g.lineTo(X(hover), H-padB); g.stroke(); g.setLineDash([]);
+      [[p,'--c'],[n,'--a'],[w,'--b']].forEach(function(t){
+        g.beginPath(); g.fillStyle = css(t[1]); g.arc(X(hover), Y(t[0][hover]), 4, 0, Math.PI*2); g.fill();
+      });
+    }
   }
-
+ 
   $('tab-m').addEventListener('click',function(){setMode('m')});
   $('tab-o').addEventListener('click',function(){setMode('o')});
   window.addEventListener('resize',update);
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
   setMode('m');
   renderSide();
+})();
+</script>
+ 
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var TAX = 0.20315;
+  var mode = 'm';
+  var sl = {amt:$('sAmt'), rate:$('sRate'), inf:$('sInf'), yrs:$('sYrs')};
+  var nb = {amt:$('sAmtN'), rate:$('sRateN'), inf:$('sInfN'), yrs:$('sYrsN')};
+  var LIM = {amt:[0,100000], rate:[0,10], inf:[0,20], yrs:[1,100]};
+  var cfg = {
+    m:{label:'毎月の貯金額', unit:'万円 / 月', smin:1, smax:30, sstep:1, val:5},
+    o:{label:'預け入れ額', unit:'万円', smin:10, smax:3000, sstep:10, val:100}
+  };
+  var state = {amt:5, rate:0.4, inf:2.0, yrs:30, tax:true};
+  var chart = null;
+ 
+  var RATE_CH = [[0.4,'メガバンク普通預金 0.4％'],[1.0,'ネット銀行 1.0％'],[0,'0％（タンス預金）']];
+  var INF_CH  = [[2.0,'日銀の目標 2.0％'],[1.4,'2026年5月コアCPI 1.4％'],[2.8,'日銀見通し(26年度) 2.8％']];
+ 
+  function fmt(yen){
+    var man = Math.round(yen/10000);
+    if (man >= 10000){
+      var oku = Math.floor(man/10000), rest = man % 10000;
+      if (oku >= 10000){ var cho = Math.floor(oku/10000), ro = oku % 10000; return cho.toLocaleString('ja-JP') + '兆' + (ro? ro.toLocaleString('ja-JP')+'億円':'円'); }
+      return oku.toLocaleString('ja-JP') + '億' + (rest? rest.toLocaleString('ja-JP')+'万円':'円');
+    }
+    return man.toLocaleString('ja-JP') + '万円';
+  }
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+ 
+  function mkChips(boxId, list, key){
+    var box = $(boxId); box.innerHTML = '';
+    list.forEach(function(it){
+      var b = document.createElement('button'); b.type='button'; b.className='chip'; b.textContent = it[1];
+      b.dataset.v = it[0];
+      b.addEventListener('click', function(){ state[key] = it[0]; sl[key].value = it[0]; syncBoxes(); update(); });
+      box.appendChild(b);
+    });
+  }
+  function markChips(){
+    [['rateChips','rate'],['infChips','inf']].forEach(function(p){
+      Array.prototype.forEach.call($(p[0]).children, function(b){
+        b.classList.toggle('on', Math.abs(parseFloat(b.dataset.v) - state[p[1]]) < 1e-9);
+      });
+    });
+  }
+  function syncSliders(){ Object.keys(sl).forEach(function(k){ sl[k].value = state[k]; }); }
+  function syncBoxes(){ Object.keys(nb).forEach(function(k){ nb[k].value = state[k]; }); }
+ 
+  function setMode(m){
+    mode = m; var c = cfg[m];
+    $('sAmtLabel').textContent = c.label; $('sAmtU').textContent = c.unit;
+    sl.amt.min=c.smin; sl.amt.max=c.smax; sl.amt.step=c.sstep;
+    state.amt = c.val;
+    $('sv-m').setAttribute('aria-selected', m==='m'); $('sv-o').setAttribute('aria-selected', m==='o');
+    syncSliders(); syncBoxes(); update();
+  }
+ 
+  function calc(){
+    var netAnnual = state.rate/100 * (state.tax ? (1-TAX) : 1);
+    var mr = Math.pow(1+netAnnual, 1/12)-1;
+    var inf = state.inf/100, y = Math.round(state.yrs);
+    var a = state.amt*10000, bal = (mode==='o') ? a : 0;
+    var nom=[bal], real=[bal], pri=[bal];
+    for (var i=1;i<=y;i++){
+      for (var k=0;k<12;k++){ bal = bal*(1+mr) + (mode==='m' ? a : 0); }
+      nom.push(bal);
+      real.push(bal / Math.pow(1+inf, i));
+      pri.push(mode==='m' ? a*12*i : a);
+    }
+    return {nom:nom, real:real, pri:pri, y:y, netAnnual:netAnnual, inf:inf};
+  }
+ 
+  function update(){
+    var d = calc(), y = d.y;
+    var P=d.pri[y], N=d.nom[y], R=d.real[y];
+    $('sP').textContent = fmt(P); $('sN').textContent = fmt(N); $('sR').textContent = fmt(R);
+    $('sD').textContent = '−' + fmt(N-R);
+    var realRate = ((1+d.netAnnual)/(1+d.inf)-1)*100;
+    var pct = N>0 ? (R/N*100) : 0;
+    $('sGap').innerHTML = y + '年後の預金残高は <b>' + fmt(N) + '</b>。いまの物価で買える額に直すと <b>' + fmt(R) + '</b>分で、額面の' + pct.toFixed(0) + '％です。'
+      + '<br>実質の利回り（金利' + (state.tax?'(税引後)':'') + ' − 物価上昇）は年 ' + (realRate>=0?'+':'−') + Math.abs(realRate).toFixed(2) + '％です。';
+    markChips();
+    renderTable();
+    chart = d; hideTip(); draw(d);
+  }
+ 
+  function renderTable(){
+    var i = state.inf/100, body = $('ptb'); body.innerHTML = '';
+    [5,10,20,30,40].forEach(function(n){
+      var v = 100 / Math.pow(1+i, n), p = 100 * Math.pow(1+i, n);
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + n + '年後</td><td>' + v.toFixed(1) + '万円</td><td>' + p.toFixed(0) + '円</td>';
+      body.appendChild(tr);
+    });
+    $('half').innerHTML = i>0
+      ? 'お金の価値が半分になるまで　約 <b>' + (Math.log(2)/Math.log(1+i)).toFixed(0) + '年</b>'
+      : '物価上昇率0％では、お金の価値は変わりません。';
+  }
+ 
+  function draw(d, hover){
+    var cv = $('scv'), dpr = window.devicePixelRatio||1;
+    var W = cv.clientWidth, H = cv.clientHeight;
+    if (!W || !H) return;
+    cv.width = W*dpr; cv.height = H*dpr;
+    var g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+    var padL=52, padR=12, padT=10, padB=26, years=d.y;
+    var max = Math.max.apply(null, d.nom.concat(d.pri))*1.05 || 1;
+    var step = Math.pow(10, Math.floor(Math.log(max/4)/Math.LN10));
+    var nice = [1,2,5,10].map(function(m){return m*step}).filter(function(s){return max/s<=6})[0] || step*10;
+    var top = Math.ceil(max/nice)*nice;
+    function X(i){return padL + (W-padL-padR)*i/Math.max(years,1)}
+    function Y(v){return padT + (H-padT-padB)*(1-v/top)}
+    g.font='11px "Noto Sans JP",sans-serif'; g.fillStyle=css('--sub'); g.strokeStyle=css('--line'); g.lineWidth=1;
+    g.textAlign='right'; g.textBaseline='middle';
+    for (var v=0; v<=top+1; v+=nice){
+      var yy=Y(v); g.beginPath(); g.moveTo(padL,yy); g.lineTo(W-padR,yy); g.stroke();
+      var man=v/10000; g.fillText(man>=10000 ? (man/10000)+'億' : man.toLocaleString('ja-JP')+'万', padL-6, yy);
+    }
+    g.textAlign='center'; g.textBaseline='top';
+    var every = years>30?10:(years>12?5:(years>6?2:1));
+    for (var i=0;i<=years;i+=every){ g.fillText(i+'年', X(i), H-padB+8); }
+    function line(arr,color,wid){
+      g.beginPath(); g.strokeStyle=color; g.lineWidth=wid; g.lineJoin='round';
+      arr.forEach(function(v,i){ i ? g.lineTo(X(i),Y(v)) : g.moveTo(X(i),Y(v)) });
+      g.stroke();
+    }
+    line(d.pri, css('--c'), 2);
+    line(d.nom, css('--a'), 2.5);
+    line(d.real, css('--b'), 2.5);
+    if (hover != null && hover >= 0 && hover <= years){
+      g.strokeStyle = css('--sub'); g.lineWidth = 1; g.setLineDash([4,3]);
+      g.beginPath(); g.moveTo(X(hover), padT); g.lineTo(X(hover), H-padB); g.stroke(); g.setLineDash([]);
+      [[d.pri,'--c'],[d.nom,'--a'],[d.real,'--b']].forEach(function(t){
+        g.beginPath(); g.fillStyle = css(t[1]); g.arc(X(hover), Y(t[0][hover]), 4, 0, Math.PI*2); g.fill();
+      });
+    }
+  }
+ 
+  function hideTip(){ $('stip').hidden = true; }
+  function showTip(i){
+    if (!chart) return;
+    var tip = $('stip'), cv = $('scv');
+    draw(chart, i);
+    var P=chart.pri[i], N=chart.nom[i], R=chart.real[i];
+    tip.innerHTML = '<b>' + i + '年目' + (i===0 ? '（開始時）' : '') + '</b>'
+      + '<div class="r"><span><i style="background:var(--c)"></i>貯金した元本</span><span>' + fmt(P) + '</span></div>'
+      + '<div class="r"><span><i style="background:var(--a)"></i>預金残高（額面）</span><span>' + fmt(N) + '</span></div>'
+      + '<div class="r"><span><i style="background:var(--b)"></i>実質価値</span><span>' + fmt(R) + '</span></div>'
+      + '<div class="r"><span>物価による目減り</span><span>−' + fmt(N-R) + '</span></div>';
+    tip.hidden = false;
+    var W = cv.clientWidth, padL = 52, padR = 12;
+    var x = padL + (W-padL-padR) * i / Math.max(chart.y,1), tw = tip.offsetWidth;
+    tip.style.left = (x + 12 + tw > W ? Math.max(0, x - 12 - tw) : x + 12) + 'px';
+  }
+  function idxFromEvent(e){
+    var cv = $('scv'), r = cv.getBoundingClientRect(), W = cv.clientWidth, padL = 52, padR = 12;
+    var i = Math.round((e.clientX - r.left - padL) / (W - padL - padR) * chart.y);
+    return Math.min(chart.y, Math.max(0, i));
+  }
+  var cvEl = $('scv');
+  cvEl.addEventListener('pointermove', function(e){ if (chart) showTip(idxFromEvent(e)); });
+  cvEl.addEventListener('pointerdown', function(e){ if (chart) showTip(idxFromEvent(e)); });
+  cvEl.addEventListener('pointerleave', function(){ if (chart){ hideTip(); draw(chart); } });
+ 
+  // 入力イベント
+  Object.keys(sl).forEach(function(k){
+    sl[k].addEventListener('input', function(){ state[k] = parseFloat(sl[k].value); syncBoxes(); update(); });
+  });
+  Object.keys(nb).forEach(function(k){
+    nb[k].addEventListener('input', function(){
+      var v = parseFloat(nb[k].value), lim = LIM[k];
+      if (isNaN(v) || v < lim[0] || v > lim[1]){ nb[k].classList.add('bad'); return; }
+      nb[k].classList.remove('bad'); state[k] = v; sl[k].value = v; update();
+    });
+    nb[k].addEventListener('blur', function(){
+      var v = parseFloat(nb[k].value), lim = LIM[k];
+      if (isNaN(v)) v = state[k];
+      v = Math.min(lim[1], Math.max(lim[0], v));
+      state[k] = v; nb[k].value = v; nb[k].classList.remove('bad'); sl[k].value = v; update();
+    });
+    nb[k].addEventListener('keydown', function(e){ if (e.key==='Enter') nb[k].blur(); });
+  });
+  $('sTax').addEventListener('change', function(){ state.tax = $('sTax').checked; update(); });
+  $('sv-m').addEventListener('click', function(){ setMode('m'); });
+  $('sv-o').addEventListener('click', function(){ setMode('o'); });
+  window.addEventListener('resize', function(){ if (chart && !$('view-save').hidden) draw(chart); });
+ 
+  // 上部タブ（運用SIM / 実質貯金SIM）
+  var TXT = {
+    i:['運用SIM','年間の信託報酬（手数料）が、長期の運用成果をどれだけ減らすかを比較します。右の一覧から銘柄を選ぶと、その信託報酬率を反映できます。'],
+    s:['実質貯金SIM','預金金利と物価上昇を織り込んで、貯金の「いまの物価で買える額」がどう変わるかを見ます。日銀の物価目標（年2％）が初期値です。']
+  };
+  function setApp(a){
+    $('app-i').setAttribute('aria-selected', a==='i'); $('app-s').setAttribute('aria-selected', a==='s');
+    $('view-invest').hidden = (a!=='i'); $('view-save').hidden = (a!=='s');
+    $('ttl').textContent = TXT[a][0]; $('lead').textContent = TXT[a][1];
+    document.title = TXT[a][0];
+    window.dispatchEvent(new Event('resize'));
+    if (a==='s') update();
+  }
+  $('app-i').addEventListener('click', function(){ setApp('i'); });
+  $('app-s').addEventListener('click', function(){ setApp('s'); });
+ 
+  mkChips('rateChips', RATE_CH, 'rate');
+  mkChips('infChips', INF_CH, 'inf');
+  setMode('m');
 })();
 </script>
 </body>
