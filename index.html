@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>運用SIM</title>
+<style>
+:root{
+  --bg:#f3f6f5; --panel:#ffffff; --ink:#14292b; --sub:#5b706f; --line:#d9e2e0;
+  --a:#0d7c70; --b:#c2410c; --c:#8a9a98; --track:#e3ebe9;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1b1c; --panel:#162728; --ink:#e6f0ee; --sub:#93a9a6; --line:#26403f;
+    --a:#34c3b0; --b:#fb8a4f; --c:#6f8582; --track:#223737;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1b1c; --panel:#162728; --ink:#e6f0ee; --sub:#93a9a6; --line:#26403f;
+  --a:#34c3b0; --b:#fb8a4f; --c:#6f8582; --track:#223737;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",-apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;line-height:1.7}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 56px}
+h1{font-size:22px;margin:0 0 4px;font-weight:700}
+.lead{color:var(--sub);font-size:14px;margin:0 0 20px}
+.tabs{display:flex;gap:4px;background:var(--track);padding:4px;border-radius:12px;margin-bottom:16px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--sub);font:inherit;font-weight:500;padding:10px 8px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tabs button:focus-visible,input:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.field{margin-bottom:18px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.row label{font-size:14px;font-weight:500}
+.val{display:flex;align-items:baseline;gap:6px;font-size:14px;color:var(--sub)}
+.val input{width:110px;font:inherit;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.val input:focus-visible{outline:2px solid var(--a);outline-offset:1px}
+.val input.bad{border-color:var(--b)}
+input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--a)}
+.result{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.stat{border-left:4px solid var(--c);padding:2px 0 2px 12px}
+.stat.a{border-color:var(--a)} .stat.b{border-color:var(--b)}
+.stat small{display:block;color:var(--sub);font-size:12px}
+.stat strong{font-size:20px;font-variant-numeric:tabular-nums}
+.gap{background:var(--track);border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:16px}
+.gap b{font-size:18px;color:var(--b);font-variant-numeric:tabular-nums}
+.chartbox{width:100%;aspect-ratio:16/9;min-height:220px}
+canvas{width:100%;height:100%;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.note{font-size:12px;color:var(--sub);margin-top:18px}
+
+.wrap{max-width:1120px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+.side{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
+.side .tabs{margin-bottom:12px}
+.sidehead{font-size:13px;color:var(--sub);margin:0 0 8px}
+.avg{font-size:13px;background:var(--track);border-radius:8px;padding:8px 10px;margin:0 0 6px}
+.avg b{font-variant-numeric:tabular-nums}
+.list{max-height:620px;overflow:auto;margin:0 -8px;padding:0 8px}
+.fund{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:10px 6px;font:inherit;color:inherit;cursor:pointer;border-radius:6px}
+.fund:hover{background:var(--track)}
+.fund:focus-visible{outline:2px solid var(--a);outline-offset:-2px}
+.fund.on{background:var(--track);box-shadow:inset 3px 0 0 var(--a)}
+.f-top{display:flex;gap:8px;align-items:baseline}
+.f-rank{flex:none;width:22px;color:var(--sub);font-size:12px;font-variant-numeric:tabular-nums}
+.f-name{flex:1;font-size:13px;font-weight:500;line-height:1.45}
+.f-fee{flex:none;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.f-bot{display:flex;gap:10px;align-items:center;margin:6px 0 0 30px}
+.bar{flex:1;height:5px;background:var(--track);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--a);border-radius:3px}
+.bar.hi i{background:var(--b)}
+.f-ret{flex:none;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;text-align:right}
+.fw{border-bottom:1px solid var(--line);padding-bottom:6px}
+.fw .fund{border-bottom:0}
+.lt{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:0 0 4px 36px;font-size:12px;color:var(--sub)}
+.ltbtn{font:inherit;font-size:12px;color:var(--a);background:transparent;border:1px solid var(--a);border-radius:999px;padding:2px 10px;cursor:pointer}
+.ltbtn:hover{background:var(--track)}
+.ltbtn:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.picked{font-size:12px;color:var(--a);margin-top:6px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}.side{position:static}.list{max-height:480px}}
+@media (max-width:480px){.result{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>運用SIM</h1>
+  <p class="lead">年間の信託報酬（手数料）が、長期の運用成果をどれだけ減らすかを比較します。右の一覧から銘柄を選ぶと、その信託報酬率を反映できます。</p>
+
+  <div class="layout"><div class="main">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-m" aria-selected="true">毎月積み立てる</button>
+    <button role="tab" id="tab-o" aria-selected="false">一括で買い付ける</button>
+  </div>
+
+  <div class="panel">
+    <div class="field">
+      <div class="row"><label for="amtN" id="amtLabel">積立額（月）</label><span class="val"><input type="number" id="amtN" inputmode="decimal" min="0" step="any"><span id="amtU">万円 / 月</span></span></div>
+      <input type="range" id="amt" aria-label="スライダー">
+    </div>
+    <div class="field">
+      <div class="row"><label for="feeN">信託報酬率（年）</label><span class="val"><input type="number" id="feeN" inputmode="decimal" min="0" max="10" step="any"><span>％</span></span></div>
+      <input type="range" id="fee" min="0" max="3" step="0.05" aria-label="スライダー">
+      <div class="picked" id="picked" hidden></div>
+    </div>
+    <div class="field">
+      <div class="row"><label for="retN">運用利回り（年・手数料控除前）</label><span class="val"><input type="number" id="retN" inputmode="decimal" min="0" max="30" step="any"><span>％</span></span></div>
+      <input type="range" id="ret" min="0" max="12" step="0.1" aria-label="スライダー">
+    </div>
+    <div class="field">
+      <div class="row"><label for="yrsN">運用年数</label><span class="val"><input type="number" id="yrsN" inputmode="numeric" min="1" max="100" step="1"><span>年</span></span></div>
+      <input type="range" id="yrs" min="1" max="50" step="1" aria-label="スライダー">
+    </div>
+
+    <div class="result">
+      <div class="stat"><small>投資元本</small><strong id="rP"></strong></div>
+      <div class="stat a"><small>手数料なしの場合</small><strong id="rN"></strong></div>
+      <div class="stat b"><small>手数料ありの場合</small><strong id="rF"></strong></div>
+      <div class="stat"><small>手数料による目減り</small><strong id="rD"></strong></div>
+    </div>
+    <div class="gap" id="gap"></div>
+
+    <div class="chartbox"><canvas id="cv" role="img" aria-label="資産推移のグラフ"></canvas></div>
+    <div class="legend">
+      <span><i style="background:var(--a)"></i>手数料なし</span>
+      <span><i style="background:var(--b)"></i>手数料あり</span>
+      <span><i style="background:var(--c)"></i>投資元本</span>
+    </div>
+  </div>
+  <p class="note">※ 手数料ありの運用利回りは「運用利回り − 信託報酬率」として計算し、毎月複利で増えると仮定しています。積立は毎月末に行う想定です。あくまでシミュレーションであり、将来の運用成果を示唆・保証するものではありません。</p>
+  </div>
+  <aside class="side">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="st-i" aria-selected="true">インデックス純資産20</button>
+      <button role="tab" id="st-a" aria-selected="false">アクティブ好調</button>
+    </div>
+    <div class="panel">
+      <p class="sidehead" id="sidehead"></p>
+      <p class="avg" id="avg"></p>
+      <div class="list" id="list"></div>
+      <p class="note" id="sidenote"></p>
+    </div>
+  </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+  var mode = 'm';
+  var $ = function(id){return document.getElementById(id)};
+  var sl = {amt:$('amt'), fee:$('fee'), ret:$('ret'), yrs:$('yrs')};
+  var nb = {amt:$('amtN'), fee:$('feeN'), ret:$('retN'), yrs:$('yrsN')};
+  var LIM = {amt:[0,100000], fee:[0,10], ret:[0,30], yrs:[1,100]};
+  var cfg = {
+    m:{label:'積立額（月）', unit:'万円 / 月', smin:1, smax:30, sstep:1, val:5, ret:7.2},
+    o:{label:'投資元本', unit:'万円', smin:10, smax:3000, sstep:10, val:100, ret:7}
+  };
+  var state = {amt:5, fee:2, ret:7.2, yrs:30};
+
+  function fmt(yen){
+    var man = Math.round(yen/10000);
+    if (man >= 10000){
+      var oku = Math.floor(man/10000), rest = man % 10000;
+      return oku + '億' + (rest? rest.toLocaleString('ja-JP')+'万円':'円');
+    }
+    return man.toLocaleString('ja-JP') + '万円';
+  }
+
+  function syncSliders(){
+    Object.keys(sl).forEach(function(k){ sl[k].value = state[k]; });
+  }
+  function syncBoxes(except){
+    Object.keys(nb).forEach(function(k){ if (k!==except) nb[k].value = state[k]; });
+  }
+
+  function setMode(m){
+    mode = m;
+    var c = cfg[m];
+    $('amtLabel').textContent = c.label;
+    $('amtU').textContent = c.unit;
+    sl.amt.min=c.smin; sl.amt.max=c.smax; sl.amt.step=c.sstep;
+    state.amt = c.val; state.ret = c.ret;
+    $('tab-m').setAttribute('aria-selected', m==='m');
+    $('tab-o').setAttribute('aria-selected', m==='o');
+    syncSliders(); syncBoxes(); update();
+  }
+
+  // 年ごとの資産推移
+  function series(netAnnual, years){
+    var out=[], mr = Math.pow(1+netAnnual, 1/12)-1, bal=0;
+    var a = state.amt*10000;
+    if (mode==='o') bal = a;
+    out.push(bal);
+    for (var y=1;y<=years;y++){
+      for (var k=0;k<12;k++){ bal = bal*(1+mr) + (mode==='m'? a : 0); }
+      out.push(bal);
+    }
+    return out;
+  }
+
+  function update(){
+    var a = state.amt, f=state.fee/100, r=state.ret/100, y=Math.round(state.yrs);
+    var noFee = series(r, y), withFee = series(Math.max(r-f,-0.99), y);
+    var principal = [];
+    for (var i=0;i<=y;i++) principal.push(mode==='m'? a*10000*12*i : a*10000);
+    var P=principal[y], N=noFee[y], F=withFee[y];
+    $('rP').textContent = fmt(P);
+    $('rN').textContent = fmt(N);
+    $('rF').textContent = fmt(F);
+    $('rD').textContent = '−' + fmt(N-F);
+    var pct = N>0 ? ((N-F)/N*100) : 0;
+    $('gap').innerHTML = y + '年後、手数料だけで資産が <b>' + fmt(N-F) + '</b>（' + pct.toFixed(1) + '％）少なくなります。';
+    draw(noFee, withFee, principal, y);
+  }
+
+  // スライダー操作 → 数値欄に反映
+  Object.keys(sl).forEach(function(k){
+    sl[k].addEventListener('input', function(){
+      state[k] = parseFloat(sl[k].value);
+      syncBoxes(); update();
+    });
+  });
+  // 数値入力 → 状態に反映（入力途中の空欄・範囲外は計算しない）
+  Object.keys(nb).forEach(function(k){
+    nb[k].addEventListener('input', function(){
+      var v = parseFloat(nb[k].value), lim = LIM[k];
+      if (isNaN(v) || v < lim[0] || v > lim[1]){ nb[k].classList.add('bad'); return; }
+      nb[k].classList.remove('bad');
+      state[k] = v;
+      sl[k].value = v;   // 範囲外の値はスライダー端に寄る
+      update();
+    });
+    nb[k].addEventListener('blur', function(){
+      var v = parseFloat(nb[k].value), lim = LIM[k];
+      if (isNaN(v)) v = state[k];
+      v = Math.min(lim[1], Math.max(lim[0], v));
+      state[k] = v; nb[k].value = v; nb[k].classList.remove('bad');
+      sl[k].value = v; update();
+    });
+    nb[k].addEventListener('keydown', function(e){ if (e.key==='Enter') nb[k].blur(); });
+  });
+
+  
+  // ---- 銘柄データ（2026年9月時点・手入力のスナップショット） ----
+  var IDX = [
+    ['eMAXIS Slim 全世界株式（オール・カントリー）',0.05775,33.12,141596.67],
+    ['eMAXIS Slim 米国株式（S&P500）',0.0814,30.44,131649.71],
+    ['SBI・V・S&P500インデックス・ファンド',0.0938,null,31165.83],
+    ['楽天・全米株式インデックス・ファンド（楽天・VTI）',0.162,null,26839.85],
+    ['iFreeNEXT FANG+インデックス',0.7755,30.81,14830.34],
+    ['たわらノーロード 先進国株式',0.09889,30.48,13803.67],
+    ['eMAXIS Slim 先進国株式インデックス（除く日本）',0.09889,null,13783.12],
+    ['eMAXIS Slim 全世界株式（除く日本）',0.05775,null,12756.27],
+    ['楽天・プラス・S&P500インデックス・ファンド',0.077,null,12317.58],
+    ['ニッセイ外国株式インデックスファンド',0.09889,null,11236.7],
+    ['楽天・プラス・オールカントリー株式インデックス・ファンド',0.0561,null,10558.21],
+    ['楽天・全世界株式インデックス・ファンド（楽天・VT）',0.178,null,9262.18],
+    ['eMAXIS Slim 国内株式（TOPIX）',0.143,38.07,8614.68],
+    ['iFree S&P500インデックス',0.198,30.23,8525.92],
+    ['ニッセイ NASDAQ100インデックスファンド',0.2035,35.71,6493.52],
+    ['つみたて先進国株式',0.22,null,6352.83],
+    ['eMAXIS Slim 国内株式（日経平均）',0.143,57.64,5816.35],
+    ['たわらノーロード 日経225',0.143,57.57,5378.47],
+    ['ニッセイ 日経225インデックスファンド',0.275,null,5271.32],
+    ['日経225ノーロードオープン',0.55,56.78,4980.89]
+  ];
+  var ACT = [
+    ['グローバル仮想世界株式戦略（メタバース）',1.948,46.35,38.54],
+    ['次世代通信関連 アジア株式戦略（ASIA5G）',1.848,35.63,37.69],
+    ['アジア・オセアニア配当利回り株オープン',1.87,34.43,21.31],
+    ['iFreeActive ゲーム&eスポーツ',1.221,26.86,19.60],
+    ['JPMアジアオセアニア高配当株式（アジアの風）',1.617,26.36,16.35],
+    ['F・テクノロジー・リーダーズA（限定H）',1.7875,25.22,25.72]
+  ];
+  // 長期目安: 指数の過去20年・年率平均（配当込み）。ACWI・S&P500は円ベース(myindex)、NASDAQ100はドルベース(QQQ, ChartRow)
+  var LT = {0:[10.7,'全世界株(ACWI)'],10:[10.7,'全世界株(ACWI)'],
+            1:[12.6,'S&P500'],2:[12.6,'S&P500'],8:[12.6,'S&P500'],13:[12.6,'S&P500'],
+            14:[16.4,'NASDAQ100・ドル']};
+  var side = 'i', pickedIdx = -1;
+
+  function feeText(v){ return (Math.round(v*10000)/10000) + '％'; }
+
+  function renderSide(){
+    var data = side==='i' ? IDX : ACT, box = $('list');
+    var avg = data.reduce(function(a,r){return a+r[1]},0)/data.length;
+    $('st-i').setAttribute('aria-selected', side==='i');
+    $('st-a').setAttribute('aria-selected', side==='a');
+    $('sidehead').textContent = side==='i'
+      ? '純資産総額が大きい順。長く多くの資金が集まっているファンドです。'
+      : '3年間の年率リターンが高かったアクティブ型。右端は3年年率リターン／リスク。';
+    $('avg').innerHTML = 'この一覧の平均信託報酬　<b>' + feeText(avg) + '</b>';
+    $('sidenote').textContent = side==='i'
+      ? '出典: みんかぶ投資信託「純資産総額ランキング【インデックス型】」2026年10月7日更新（信託報酬は実質）。直近1年のリターンは、2026年9月に取得した同サイトの利回りで、取得できた銘柄のみ表示しています。長期目安は連動する指数の過去20年の年率平均（配当込み）で、ファンド自体の実績ではありません。ACWI・S&P500は円ベース（myindex.jp）、NASDAQ100はドルベースのETF(QQQ)実績で代用（ChartRow）。近年は円安が数値を押し上げているため、シミュレーションでは控えめな利回りもあわせて試してください。「データ未確認」は未調査の銘柄です。過去の実績は将来を示唆・保証するものではありません。'
+      : '出典: 日経電子版「投信ランキング リターン上位（3年）」を参照し、確認できた銘柄のみ掲載（2026年9月時点）。直近1年と長期のデータは確認できていません。テーマ型が中心で値動きが大きく、過去の実績は将来を保証しません。';
+    box.innerHTML = '';
+    data.forEach(function(r, i){
+      var wrap = document.createElement('div'); wrap.className = 'fw';
+      var b = document.createElement('button');
+      b.type='button'; b.className = 'fund' + (i===pickedIdx && side===pickedSide ? ' on':'');
+      var ret = side==='i' ? ('純資産 ' + (r[3]>=10000 ? (r[3]/10000).toFixed(2) + '兆円' : Math.round(r[3]).toLocaleString('ja-JP') + '億円'))
+                           : ('3年 +' + r[2].toFixed(1) + '％／リスク' + r[3].toFixed(1) + '％');
+      var w = Math.min(100, r[1]/2*100);
+      b.innerHTML = '<div class="f-top"><span class="f-rank">' + (i+1) + '</span><span class="f-name"></span><span class="f-fee">' + feeText(r[1]) + '</span></div>'
+        + '<div class="f-bot"><div class="bar' + (r[1]>=1?' hi':'') + '"><i style="width:' + w + '%"></i></div><span class="f-ret">' + ret + '</span></div>';
+      b.querySelector('.f-name').textContent = r[0];
+      b.addEventListener('click', function(){ pick(i); });
+      wrap.appendChild(b);
+      var lt = document.createElement('div'); lt.className = 'lt';
+      var L = side==='i' ? LT[i] : null;
+      var y1 = side==='i' ? (r[2]!=null ? '直近1年 +' + r[2].toFixed(1) + '％' : '直近1年 —') : '';
+      if (side==='i') lt.appendChild(document.createTextNode(y1 + '　'));
+      if (L){
+        lt.appendChild(document.createTextNode('長期目安 +' + L[0].toFixed(1) + '％（' + L[1] + '・20年）'));
+        var lb = document.createElement('button'); lb.type='button'; lb.className='ltbtn'; lb.textContent = '利回りに反映';
+        lb.addEventListener('click', function(){ pickReturn(i, L); });
+        lt.appendChild(lb);
+      } else {
+        lt.appendChild(document.createTextNode(side==='i' ? '長期目安 —' : '長期目安: データ未確認（実績は上の3年のみ）'));
+      }
+      wrap.appendChild(lt);
+      box.appendChild(wrap);
+    });
+  }
+  var pickedSide = 'i';
+
+  function pick(i){
+    var r = (side==='i' ? IDX : ACT)[i];
+    pickedIdx = i; pickedSide = side;
+    state.fee = r[1];
+    sl.fee.value = r[1]; syncBoxes(); update();
+    var p = $('picked'); p.hidden = false;
+    p.textContent = '「' + r[0] + '」の信託報酬 ' + feeText(r[1]) + ' を反映中';
+    renderSide();
+    if (window.innerWidth <= 900) window.scrollTo({top:0, behavior:'smooth'});
+  }
+  function pickReturn(i, L){
+    state.ret = L[0]; sl.ret.value = L[0]; syncBoxes(); update();
+    var p = $('picked'); p.hidden = false;
+    p.textContent = '運用利回りに長期目安 ' + L[0].toFixed(1) + '％（' + L[1] + '・過去20年）を反映中';
+  }
+  function clearPicked(){ pickedIdx = -1; $('picked').hidden = true; renderSide(); }
+  sl.fee.addEventListener('input', clearPicked);
+  nb.fee.addEventListener('input', clearPicked);
+  $('st-i').addEventListener('click', function(){ side='i'; renderSide(); });
+  $('st-a').addEventListener('click', function(){ side='a'; renderSide(); });
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+
+  function draw(n, w, p, years){
+    var cv=$('cv'), dpr=window.devicePixelRatio||1;
+    var W=cv.clientWidth, H=cv.clientHeight;
+    cv.width=W*dpr; cv.height=H*dpr;
+    var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+    g.clearRect(0,0,W,H);
+    var padL=52, padR=12, padT=10, padB=26;
+    var max = Math.max.apply(null, n)*1.05 || 1;
+    var step = Math.pow(10, Math.floor(Math.log(max/4)/Math.LN10));
+    var nice=[1,2,5,10].map(function(m){return m*step}).filter(function(s){return max/s<=6})[0]||step*10;
+    var top = Math.ceil(max/nice)*nice;
+    function X(i){return padL + (W-padL-padR)*i/Math.max(years,1)}
+    function Y(v){return padT + (H-padT-padB)*(1-v/top)}
+    g.font='11px "Noto Sans JP",sans-serif'; g.fillStyle=css('--sub'); g.strokeStyle=css('--line'); g.lineWidth=1;
+    g.textAlign='right'; g.textBaseline='middle';
+    for (var v=0; v<=top+1; v+=nice){
+      var yy=Y(v); g.beginPath(); g.moveTo(padL,yy); g.lineTo(W-padR,yy); g.stroke();
+      var man=v/10000; g.fillText(man>=10000? (man/10000)+'億' : man.toLocaleString('ja-JP')+'万', padL-6, yy);
+    }
+    g.textAlign='center'; g.textBaseline='top';
+    var every = years>30?10:(years>12?5:(years>6?2:1));
+    for (var i=0;i<=years;i+=every){ g.fillText(i+'年', X(i), H-padB+8); }
+    function line(arr,color,wid){
+      g.beginPath(); g.strokeStyle=color; g.lineWidth=wid; g.lineJoin='round';
+      arr.forEach(function(v,i){ i? g.lineTo(X(i),Y(v)) : g.moveTo(X(i),Y(v)) });
+      g.stroke();
+    }
+    line(p, css('--c'), 2);
+    line(n, css('--a'), 2.5);
+    line(w, css('--b'), 2.5);
+  }
+
+  $('tab-m').addEventListener('click',function(){setMode('m')});
+  $('tab-o').addEventListener('click',function(){setMode('o')});
+  window.addEventListener('resize',update);
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
+  setMode('m');
+  renderSide();
+})();
+</script>
+</body>
+</html>
